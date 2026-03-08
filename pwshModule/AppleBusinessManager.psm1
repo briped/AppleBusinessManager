@@ -1,4 +1,12 @@
-$Script:ApiBaseUri = [uri]'https://api-business.apple.com/v1'
+New-Variable -Force -Scope Script -Name Config -Value @{}
+$Script:Config = @{
+    TokenUrl   = [uri]'https://account.apple.com/auth/oauth2/v2/token'
+    ApiUrl     = [uri]'https://api-business.apple.com/v1'
+    TimeToLive = [timespan]::FromMinutes(15)
+}
+
+New-Variable -Force -Scope Script -Name Api -Value @{}
+
 $ExcludeFunctionRegex = [regex]'^\.|\.dev$|\.test$'
 
 $PublicFunctionsPath = Join-Path -Path $PSScriptRoot -ChildPath 'public'
