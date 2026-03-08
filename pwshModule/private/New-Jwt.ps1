@@ -21,17 +21,17 @@ function New-Jwt {
         [string]
         $Subject
         ,
-        [Parameter()]
+        [Parameter(Mandatory = $true)]
         [Alias('aud')]
         [uri]
-        $Audience = 'https://account.apple.com/auth/oauth2/v2/token'
+        $Audience
         ,
-        [Parameter()]
+        [Parameter(Mandatory = $true)]
         [Alias('ttl')]
         [timespan]
-        $TimeToLive = (New-TimeSpan -Hours 1)
+        $TimeToLive
     )
-    Write-Debug -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress)"
+    Write-Debug -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     $Now = [System.DateTimeOffset]::Now
     $JwtId = [guid]::NewGuid().Guid
     # JOSE (JavaScript Object Signing and Encryption) header.
