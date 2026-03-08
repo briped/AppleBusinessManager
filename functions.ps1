@@ -1,1 +1,0 @@
-Get-ChildItem -Path .\functions -Filter '*.ps1' | ForEach-Object { . $_.FullName }
