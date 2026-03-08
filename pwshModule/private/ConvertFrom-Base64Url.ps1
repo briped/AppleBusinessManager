@@ -8,10 +8,10 @@ function ConvertFrom-Base64Url {
         $Value
     )
     begin {
-        Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress)"
+        Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
-        if ($PSCmdlet.MyInvocation.PipelineLength -gt 0) { Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Process: $($Value | ConvertTo-Json -Compress)" }
+        if ($PSCmdlet.MyInvocation.PipelineLength -gt 0) { Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Process: $($Value | ConvertTo-Json -Compress -WarningAction SilentlyContinue)" }
         $Padding = 4 - ($Value.Length % 4)
         if ($Padding -ne 4) { $Value += '=' * $Padding }
         $Base64 = $Value -replace '-', '+' -replace '_', '/'

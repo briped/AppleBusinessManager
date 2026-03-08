@@ -15,7 +15,7 @@ function New-JwsCompactSerialization {
         $SigningInput
     )
     begin {
-        Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress)"
+        Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
 
         # Ensure the key is in the proper format.
         $KeyString = [System.String]::Concat((($Key | ConvertFrom-SecureString -AsPlainText).Split("`n") | Where-Object { $_ -notmatch '^-----|^$' }))
@@ -26,7 +26,7 @@ function New-JwsCompactSerialization {
         $ECDsa.ImportPkcs8PrivateKey($KeyBytes, [ref]$null)
     }
     process {
-        if ($PSCmdlet.MyInvocation.PipelineLength -gt 0) { Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Process: $($SigningInput | ConvertTo-Json -Compress)" }
+        if ($PSCmdlet.MyInvocation.PipelineLength -gt 0) { Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Process: $($SigningInput | ConvertTo-Json -Compress -WarningAction SilentlyContinue)" }
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): `$SigningInput: [$($SigningInput.Split('.').ForEach({$_|ConvertFrom-Base64Url}) -join ',')]"
         $JwsPayload = [System.Text.Encoding]::UTF8.GetBytes($SigningInput)
         $SignedJwsPayload = $ECDsa.SignData($JwsPayload, [System.Security.Cryptography.HashAlgorithmName]::SHA256)

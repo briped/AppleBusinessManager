@@ -16,7 +16,7 @@ function ConvertTo-Base64Url {
         $Bytes
     )
     begin {
-        Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress)"
+        Write-Verbose -Message "$($MyInvocation.MyCommand.Name): Begin: $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
         if ($PSCmdlet.ParameterSetName -eq 'String') { $Bytes = [System.Text.Encoding]::UTF8.GetBytes(([string]$String)) }
