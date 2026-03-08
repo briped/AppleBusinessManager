@@ -1,7 +1,9 @@
 function Get-DeviceAppleCare {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Limit')]
     param (
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true
+                ,  ValueFromPipeline = $true
+                ,  ValueFromPipelineByPropertyName = $true)]
         [string]
         $Id
         ,
@@ -12,17 +14,24 @@ function Get-DeviceAppleCare {
         [string[]]
         $Fields
         ,
-        [Parameter()]
+        [Parameter(ParameterSetName = 'Limit')]
         [ValidateRange(1, 1000)]
         [int]
         $Limit
+        ,
+        [Parameter(ParameterSetName = 'All')]
+        [Switch]
+        $All
     )
     begin {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress)"
-        $Endpoint = "/orgDevices/${Id}/appleCareCoverage"
-        $Uri = [uri]"$($Script:ApiBaseUri)$($Endpoint)"
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        if ($PSCmdlet.ParameterSetName -eq 'All') {
+            throw 'All switch is not implemented yet.'
+        }
     }
     process {
+        $Endpoint = "/orgDevices/${Id}/appleCareCoverage"
+        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
         $Attributes = @{
             Method = 'Get'
             Uri = $Uri

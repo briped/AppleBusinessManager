@@ -9,13 +9,20 @@ function Get-DeviceMDMServer {
         [ValidateRange(1, 1000)]
         [int]
         $Limit
+        ,
+        [Parameter(ParameterSetName = 'All')]
+        [Switch]
+        $All
     )
     begin {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress)"
-        $Endpoint = "/orgDevices/${Id}/relationships/assignedServer"
-        $Uri = [uri]"$($Script:ApiBaseUri)$($Endpoint)"
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        if ($PSCmdlet.ParameterSetName -eq 'All') {
+            throw 'All switch is not implemented yet.'
+        }
     }
     process {
+        $Endpoint = "/orgDevices/${Id}/relationships/assignedServer"
+        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
         $Attributes = @{
             Method = 'Get'
             Uri = $Uri

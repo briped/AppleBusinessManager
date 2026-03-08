@@ -11,9 +11,9 @@ function Get-DeviceActivity {
         $Fields
     )
     begin {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress)"
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
         $Endpoint = "/orgDeviceActivities/${Id}"
-        $Uri = [uri]"$($Script:ApiBaseUri)$($Endpoint)"
+        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
     }
     process {
         $Attributes = @{
