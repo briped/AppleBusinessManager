@@ -4,6 +4,7 @@ function Get-DeviceAppleCare {
         [Parameter(Mandatory = $true
                 ,  ValueFromPipeline = $true
                 ,  ValueFromPipelineByPropertyName = $true)]
+        [Alias('DeviceId')]
         [string]
         $Id
         ,
@@ -26,6 +27,7 @@ function Get-DeviceAppleCare {
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
         if ($PSCmdlet.ParameterSetName -eq 'All') {
+            # TODO: Implement in-function-paging.
             throw 'All switch is not implemented yet.'
         }
     }
@@ -37,7 +39,8 @@ function Get-DeviceAppleCare {
             Uri = $Uri
         }
         $Response = Invoke-ApiRequest @Attributes
-        $Response
+        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
+        $Response.data
     }
     <#
 https://developer.apple.com/documentation/applebusinessmanagerapi/get-all-apple-care-coverage-for-an-orgdevice

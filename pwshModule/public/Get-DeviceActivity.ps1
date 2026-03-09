@@ -2,6 +2,7 @@ function Get-DeviceActivity {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
+        [Alias('DeviceId')]
         [string]
         $Id
         ,
@@ -21,7 +22,8 @@ function Get-DeviceActivity {
             Uri = $Uri
         }
         $Response = Invoke-ApiRequest @Attributes
-        $Response
+        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
+        $Response.data
     }
     <#
     .NOTES
