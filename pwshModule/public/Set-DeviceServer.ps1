@@ -20,6 +20,7 @@ function Set-DeviceMDMServer {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
+        throw "$($MyInvocation.MyCommand.Name): Function not implemented yet."
         $Data = @{
             type = 'orgDeviceActivities'
             attributes = @{

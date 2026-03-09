@@ -1,11 +1,12 @@
-function Get-DeviceMDMServerDetails {
-    [CmdletBinding()]
+function Get-Server {
+    [CmdletBinding(DefaultParameterSetName = 'Limit')]
     param (
-        [Parameter(Mandatory = $true)]
-        [string]
-        $Id
-        ,
         [Parameter()]
+        [ValidateSet('serverName', 'serverType', 'createdDateTime', 'updatedDateTime', 'devices')]
+        [string[]]
+        $Fields
+        ,
+        [Parameter(ParameterSetName = 'Limit')]
         [ValidateRange(1, 1000)]
         [int]
         $Limit
@@ -17,35 +18,37 @@ function Get-DeviceMDMServerDetails {
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
         if ($PSCmdlet.ParameterSetName -eq 'All') {
+            # TODO: Implement in-function-paging.
             throw 'All switch is not implemented yet.'
         }
+        $Endpoint = "/mdmServers"
+        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
     }
     process {
-        $Endpoint = "/orgDevices/${Id}/assignedServer"
-        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
         $Attributes = @{
             Method = 'Get'
             Uri = $Uri
         }
         $Response = Invoke-ApiRequest @Attributes
-        $Response
+        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
+        $Response.data
     }
     <#
-https://developer.apple.com/documentation/applebusinessmanagerapi/get-the-assigned-device-management-service-information-for-an-orgdevice
+https://developer.apple.com/documentation/applebusinessmanagerapi/get-device-management-services
 
-Get the Assigned Device Management Service Information for a Device
-Get the assigned device management service information for a device.
+Get Device Management Services
+Get a list of device management services in an organization.
 Apple Business Manager API 1.5+
 URL
-GET https://api-business.apple.com/v1/orgDevices/{id}/assignedServer
-Path Parameters
-id
-string
-(Required) The unique identifier for the resource.
+GET https://api-business.apple.com/v1/mdmServers
 Query Parameters
 fields[mdmServers]
 [string]
 The fields to return for included related types.
 Possible Values: serverName, serverType, createdDateTime, updatedDateTime, devices
+limit
+integer
+The number of included related resources to return.
+Maximum: 1000
 #>
 }
