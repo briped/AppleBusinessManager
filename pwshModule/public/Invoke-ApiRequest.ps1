@@ -37,6 +37,8 @@ function Invoke-ApiRequest {
         TimeToLive = $Script:Config.TimeToLive
     }
     # Check for access token and its validity.
+    Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($Script:Api | ConvertTo-Json -Compress)"
+    $Global:DebugApi = $Script:Api
     if (!$Script:Api -or !$Script:Api.AccessToken -or !$Script:Api.ExpiresAt -or 
         $Script:Api.ExpiresAt -gt [datetime]::Now.AddSeconds(-30)) {
         # Request a new access token.
@@ -50,10 +52,12 @@ function Invoke-ApiRequest {
     $Attributes = @{
         Headers = $Headers
         Method = $Method
+        ContentType = $ContentType
+        UseBasicParsing = $true
         Uri = $Uri
     }
-    $Response = Invoke-RestMethod @Attributes
-    $Response
+    $Response = Invoke-WebRequest @Attributes
+    $Response.Content | ConvertFrom-Json -Depth 10
     <#
     .SYNOPSIS
     .DESCRIPTION
