@@ -28,22 +28,25 @@ function Get-Device {
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $Endpoint = "/orgDevices"
     }
     process {
-        $Endpoint = "/orgDevices"
-        switch ($PSCmdlet.ParameterSetName) {
-            'ID' { $Endpoint += "/${Id}" }
-            'Limit' { if ($Limit) { $Endpoint += "?limit=${Limit}" } }
-            'All' { throw 'All switch is not implemented yet.' }
-        }
-        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
-        $Attributes = @{
-            Method = 'Get'
-            Uri = $Uri
-        }
-        $Response = Invoke-ApiRequest @Attributes
-        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
-        $Response.data
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += $Endpoint
+        if ($PSBoundParameters.ContainsKey('Id')) { $UriBuilder.Path += "/$([uri]::EscapeDataString($Id))" }
+        if ($PSBoundParameters.ContainsKey('Limit')) { $QueryString.Set('limit', $Limit) }
+        if ($PSCmdlet.ParameterSetName -eq 'All') { $QueryString.Set('limit', 1000) }
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
+        $Uri = $UriBuilder.Uri
+
+        do {
+            $Response = Invoke-ApiRequest -Method Get -Uri $Uri
+            if ($PSCmdlet.ParameterSetName -eq 'Limit') { return $Response }
+            $Uri = $Response.links.next
+            $Response.data
+        } while ($Uri)
     }
     <#
     .NOTES
