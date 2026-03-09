@@ -1,6 +1,12 @@
-function Get-OrganizationDevice {
-    [CmdletBinding()]
+function Get-Device {
+    [CmdletBinding(DefaultParameterSetName = 'Limit')]
     param (
+        [Parameter(ParameterSetName = 'ID'
+                ,  Mandatory = $true)]
+        [Alias('DeviceId')]
+        [string]
+        $Id
+        ,
         [Parameter()]
         [ValidateSet('serialNumber', 'addedToOrgDateTime', 'releasedFromOrgDateTime'
                     ,'updatedDateTime', 'deviceModel', 'productFamily', 'productType'
@@ -11,7 +17,7 @@ function Get-OrganizationDevice {
         [string[]]
         $Fields
         ,
-        [Parameter()]
+        [Parameter(ParameterSetName = 'Limit')]
         [ValidateRange(1, 1000)]
         [int]
         $Limit
@@ -22,22 +28,42 @@ function Get-OrganizationDevice {
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
-        if ($PSCmdlet.ParameterSetName -eq 'All') {
-            throw 'All switch is not implemented yet.'
-        }
-        $Endpoint = '/orgDevices'
-        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
     }
     process {
+        $Endpoint = "/orgDevices"
+        switch ($PSCmdlet.ParameterSetName) {
+            'ID' { $Endpoint += "/${Id}" }
+            'Limit' { if ($Limit) { $Endpoint += "?limit=${Limit}" } }
+            'All' { throw 'All switch is not implemented yet.' }
+        }
+        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
         $Attributes = @{
             Method = 'Get'
             Uri = $Uri
         }
         $Response = Invoke-ApiRequest @Attributes
-        $Response
+        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
+        $Response.data
     }
     <#
     .NOTES
+    https://developer.apple.com/documentation/applebusinessmanagerapi/get-orgdevice-information
+
+Get Device Information
+Get information about a device in an organization.
+Apple Business Manager API 1.5+
+URL
+GET https://api-business.apple.com/v1/orgDevices/{id}
+Path Parameters
+id
+string
+(Required) The unique identifier for the resource.
+Query Parameters
+fields[orgDevices]
+[string]
+The fields to return for included related types.
+Possible Values: serialNumber, addedToOrgDateTime, releasedFromOrgDateTime, updatedDateTime, deviceModel, productFamily, productType, deviceCapacity, partNumber, orderNumber, color, status, orderDateTime, imei, meid, eid, wifiMacAddress, bluetoothMacAddress, ethernetMacAddress, purchaseSourceId, purchaseSourceType, assignedServer, appleCareCoverage
+
     https://developer.apple.com/documentation/applebusinessmanagerapi/get-org-devices
 Get Organization Devices
 Get a list of devices in an organization that enroll using Automated Device Enrollment.
