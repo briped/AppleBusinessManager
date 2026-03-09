@@ -1,8 +1,13 @@
-Code review and full code examples from Claude.
+# Claude Sparring
+Unchecked code from Claude.  
+&mdash; and latest [Claude Code Review](#claude-code-review) below.
+
+### What is this?
+I want to implement dynamic rate limiting and caching, and needed some examples and inspiration to get started.
 
 ---
 
-## Full Code Review
+## Claude Code Review
 > Reviewed: 10 March 2026 @ 00:31
 
 ### `AppleBusinessManager.psm1`
