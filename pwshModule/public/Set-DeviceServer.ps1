@@ -8,13 +8,13 @@ function Set-DeviceMDMServer {
         ,
         [Parameter(Mandatory = $true)]
         [string]
-        $MdmServer
+        $ServerId
         ,
         [Parameter(Mandatory = $true
                 ,  ValueFromPipeline = $true
                 ,  ValueFromPipelineByPropertyName = $true)]
         [string[]]
-        $Device
+        $DeviceId
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"

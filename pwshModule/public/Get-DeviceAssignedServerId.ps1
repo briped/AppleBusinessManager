@@ -1,23 +1,24 @@
 function Get-DeviceAssignedServerId {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
-        [Alias('DeviceId')]
+        [Parameter(Mandatory = $true
+                ,  ValueFromPipeline = $true
+                ,  ValueFromPipelineByPropertyName = $true)]
+        [Alias('Id')]
         [string]
-        $Id
+        $DeviceId
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
-        $Endpoint = "/orgDevices/${Id}/relationships/assignedServer"
-        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
-        $Attributes = @{
-            Method = 'Get'
-            Uri = $Uri
-        }
-        $Response = Invoke-ApiRequest @Attributes
-        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDevices'))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('relationships'))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('assignedServer'))"
+        $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+        if ($Raw) { return $Response }
         $Response.data
     }
     <#

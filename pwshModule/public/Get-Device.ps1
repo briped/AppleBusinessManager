@@ -2,10 +2,12 @@ function Get-Device {
     [CmdletBinding(DefaultParameterSetName = 'Limit')]
     param (
         [Parameter(ParameterSetName = 'ID'
-                ,  Mandatory = $true)]
-        [Alias('DeviceId')]
+                ,  Mandatory = $true
+                ,  ValueFromPipeline = $true
+                ,  ValueFromPipelineByPropertyName = $true)]
+        [Alias('Id')]
         [string]
-        $Id
+        $DeviceId
         ,
         [Parameter()]
         [ValidateSet('serialNumber', 'addedToOrgDateTime', 'releasedFromOrgDateTime'
@@ -28,19 +30,17 @@ function Get-Device {
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
-        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
-        $Endpoint = "/orgDevices"
     }
     process {
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
         $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
-        $UriBuilder.Path += $Endpoint
-        if ($PSBoundParameters.ContainsKey('Id')) { $UriBuilder.Path += "/$([uri]::EscapeDataString($Id))" }
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDevices'))"
+        if ($PSBoundParameters.ContainsKey('DeviceId')) { $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))" }
         if ($PSBoundParameters.ContainsKey('Limit')) { $QueryString.Set('limit', $Limit) }
         if ($PSCmdlet.ParameterSetName -eq 'All') { $QueryString.Set('limit', 1000) }
         if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
         $UriBuilder.Query = $QueryString.ToString()
         $Uri = $UriBuilder.Uri
-
         do {
             $Response = Invoke-ApiRequest -Method Get -Uri $Uri
             if ($PSCmdlet.ParameterSetName -eq 'Limit') { return $Response }

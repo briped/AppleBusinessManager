@@ -4,9 +4,9 @@ function Get-DeviceAppleCare {
         [Parameter(Mandatory = $true
                 ,  ValueFromPipeline = $true
                 ,  ValueFromPipelineByPropertyName = $true)]
-        [Alias('DeviceId')]
+        [Alias('Id')]
         [string]
-        $Id
+        $DeviceId
         ,
         [Parameter()]
         [ValidateSet('status', 'paymentType', 'description', 'agreementNumber'
@@ -26,21 +26,24 @@ function Get-DeviceAppleCare {
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
-        if ($PSCmdlet.ParameterSetName -eq 'All') {
-            # TODO: Implement in-function-paging.
-            throw 'All switch is not implemented yet.'
-        }
     }
     process {
-        $Endpoint = "/orgDevices/${Id}/appleCareCoverage"
-        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
-        $Attributes = @{
-            Method = 'Get'
-            Uri = $Uri
-        }
-        $Response = Invoke-ApiRequest @Attributes
-        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
-        $Response.data
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDevices'))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('appleCareCoverage'))"
+        if ($PSBoundParameters.ContainsKey('Limit')) { $QueryString.Set('limit', $Limit) }
+        if ($PSCmdlet.ParameterSetName -eq 'All') { $QueryString.Set('limit', 1000) }
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
+        $Uri = $UriBuilder.Uri
+        do {
+            $Response = Invoke-ApiRequest -Method Get -Uri $Uri
+            if ($PSCmdlet.ParameterSetName -eq 'Limit') { return $Response }
+            $Uri = $Response.links.next
+            $Response.data
+        } while ($Uri)
     }
     <#
 https://developer.apple.com/documentation/applebusinessmanagerapi/get-all-apple-care-coverage-for-an-orgdevice

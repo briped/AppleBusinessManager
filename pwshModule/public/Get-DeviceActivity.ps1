@@ -1,28 +1,34 @@
 function Get-DeviceActivity {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
-        [Alias('DeviceId')]
+        [Parameter(Mandatory = $true
+                ,  ValueFromPipeline = $true
+                ,  ValueFromPipelineByPropertyName = $true)]
+        [Alias('Id')]
         [string]
-        $Id
+        $DeviceId
         ,
         [Parameter()]
         [ValidateSet('status', 'subStatus', 'createdDateTime', 'completedDateTime', 'downloadUrl')]
         [string[]]
         $Fields
+        ,
+        [Parameter()]
+        [switch]
+        $Raw
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
-        $Endpoint = "/orgDeviceActivities/${Id}"
-        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
     }
     process {
-        $Attributes = @{
-            Method = 'Get'
-            Uri = $Uri
-        }
-        $Response = Invoke-ApiRequest @Attributes
-        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('/orgDeviceActivities'))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))"
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
+        $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+        if ($Raw) { return $Response }
         $Response.data
     }
     <#

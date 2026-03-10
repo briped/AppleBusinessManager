@@ -2,27 +2,32 @@ function Get-DeviceAssignedServerDetails {
     [CmdletBinding(DefaultParameterSetName = 'Limit')]
     param (
         [Parameter(Mandatory = $true)]
-        [Alias('DeviceId')]
+        [Alias('Id')]
         [string]
-        $Id
+        $DeviceId
         ,
         [Parameter()]
         [ValidateSet('serverName', 'serverType', 'createdDateTime', 'updatedDateTime', 'devices')]
         [string[]]
         $Fields
+        ,
+        [Parameter()]
+        [switch]
+        $Raw
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
-        $Endpoint = "/orgDevices/${Id}/assignedServer"
-        $Uri = [uri]"$($Script:Config.ApiUrl)$($Endpoint)"
-        $Attributes = @{
-            Method = 'Get'
-            Uri = $Uri
-        }
-        $Response = Invoke-ApiRequest @Attributes
-        #TODO: Implement "raw" response, i.e. return the entire object instead of only the data.
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDevices'))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('assignedServer'))"
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
+        $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+        if ($Raw) { return $Response }
         $Response.data
     }
     <#
