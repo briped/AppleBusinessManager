@@ -1,5 +1,5 @@
 function Get-Device {
-    [CmdletBinding(DefaultParameterSetName = 'Limit')]
+    [CmdletBinding(DefaultParameterSetName = 'NoID')]
     param (
         [Parameter(ParameterSetName = 'ID'
                 ,  Mandatory = $true
@@ -19,14 +19,18 @@ function Get-Device {
         [string[]]
         $Fields
         ,
-        [Parameter(ParameterSetName = 'Limit')]
+        [Parameter(ParameterSetName = 'NoID')]
         [ValidateRange(1, 1000)]
         [int]
         $Limit
         ,
-        [Parameter(ParameterSetName = 'All')]
+        [Parameter(ParameterSetName = 'NoID')]
         [Switch]
         $All
+        ,
+        [Parameter()]
+        [switch]
+        $Raw
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
@@ -43,9 +47,13 @@ function Get-Device {
         $Uri = $UriBuilder.Uri
         do {
             $Response = Invoke-ApiRequest -Method Get -Uri $Uri
-            if ($PSCmdlet.ParameterSetName -eq 'Limit') { return $Response }
+            if ($NoID) {
+                if ($Raw) { return $Response }
+                else { return $Response.data }
+            }
             $Uri = $Response.links.next
-            $Response.data
+            if ($Raw) { $Response }
+            else { $Response.data }
         } while ($Uri)
     }
     <#
