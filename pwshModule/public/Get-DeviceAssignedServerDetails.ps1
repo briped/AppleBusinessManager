@@ -27,8 +27,8 @@ function Get-DeviceAssignedServerDetails {
         if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
         $UriBuilder.Query = $QueryString.ToString()
         $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
-        if ($Raw) { return $Response }
-        $Response.data
+        if ($Raw) { $Response }
+        else { $Response.data }
     }
     <#
 https://developer.apple.com/documentation/applebusinessmanagerapi/get-the-assigned-device-management-service-information-for-an-orgdevice

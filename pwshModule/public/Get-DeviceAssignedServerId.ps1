@@ -7,6 +7,10 @@ function Get-DeviceAssignedServerId {
         [Alias('Id')]
         [string]
         $DeviceId
+        ,
+        [Parameter()]
+        [switch]
+        $Raw
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
@@ -18,8 +22,8 @@ function Get-DeviceAssignedServerId {
         $UriBuilder.Path += "/$([uri]::EscapeDataString('relationships'))"
         $UriBuilder.Path += "/$([uri]::EscapeDataString('assignedServer'))"
         $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
-        if ($Raw) { return $Response }
-        $Response.data
+        if ($Raw) { $Response }
+        else { $Response.data }
     }
     <#
     WHAT IS THE POINT OF THIS!?

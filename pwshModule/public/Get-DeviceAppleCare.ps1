@@ -23,6 +23,10 @@ function Get-DeviceAppleCare {
         [Parameter(ParameterSetName = 'All')]
         [Switch]
         $All
+        ,
+        [Parameter()]
+        [switch]
+        $Raw
     )
     begin {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
@@ -40,9 +44,13 @@ function Get-DeviceAppleCare {
         $Uri = $UriBuilder.Uri
         do {
             $Response = Invoke-ApiRequest -Method Get -Uri $Uri
-            if ($PSCmdlet.ParameterSetName -eq 'Limit') { return $Response }
+            if ($PSCmdlet.ParameterSetName -eq 'Limit') {
+                if ($Raw) { return $Response }
+                else { return $Response.data }
+            }
             $Uri = $Response.links.next
-            $Response.data
+            if ($Raw) { $Response }
+            else { $Response.data }
         } while ($Uri)
     }
     <#
