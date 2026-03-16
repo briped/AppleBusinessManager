@@ -6,7 +6,14 @@ function Initialize-RateLimitState {
     )
 
     if (-not $Script:RateLimitStateFile) {
-        $Script:RateLimitStateFile = Join-Path $env:APPDATA 'ApiRateLimitState.json'
+        # Determine the state file path from config or use current directory
+        if ($Script:Config.RateLimitStatePath) {
+            $Script:RateLimitStateFile = $Script:Config.RateLimitStatePath
+        }
+        else {
+            # Default to current directory or module directory
+            $Script:RateLimitStateFile = Join-Path (Get-Location).Path '.ApiRateLimitState.json'
+        }
     }
 
     if (-not $Script:ApiCache) {
@@ -30,9 +37,9 @@ function Initialize-RateLimitState {
     $hostKey = $Uri.Host
     if (-not $Script:RateLimit.ContainsKey($hostKey)) {
         $Script:RateLimit[$hostKey] = @{
-            DelayMs        = 0
-            LastRequestAt  = $null
-            ConsecutiveOks = 0
+            DelayMilliseconds = 0
+            LastRequestAt     = $null
+            ConsecutiveOks    = 0
         }
     }
     <#
@@ -47,5 +54,11 @@ function Initialize-RateLimitState {
     .NOTES
         State is stored in $Script:RateLimit, keyed by hostname.
         Persisted to $Script:RateLimitStateFile (JSON) across sessions.
+        DelayMilliseconds tracks the learned inter-request delay in milliseconds.
+
+        File Path Resolution:
+        1. If $Script:Config.RateLimitStatePath is set, uses that path
+        2. Otherwise, defaults to .ApiRateLimitState.json in the current working directory
+        3. To set a custom path, use New-ApiConfig or Set-ApiConfig with -RateLimitStatePath
     #>
 }

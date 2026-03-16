@@ -58,18 +58,6 @@ function New-ApiConfig {
         [uri]
         $ApiUrl = 'https://api-business.apple.com/v1'
         ,
-        [Parameter(ParameterSetName = 'Default'
-                ,  ValueFromPipelineByPropertyName = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.IO.FileInfo]
-        $RateLimitStatePath
-        ,
-        [Parameter(ParameterSetName = 'Default'
-                ,  ValueFromPipelineByPropertyName = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.IO.FileInfo]
-        $ResponseCachePath
-        ,
         [Parameter()]
         [switch]
         $PassThru
@@ -90,8 +78,6 @@ function New-ApiConfig {
     $ConfigTable.TimeToLive = $TimeToLive
     $ConfigTable.TokenUrl = $TokenUrl
     $ConfigTable.ApiUrl = $ApiUrl
-    if ($PSBoundParameters.ContainsKey('RateLimitStatePath')) { $ConfigTable.RateLimitStatePath = $RateLimitStatePath }
-    if ($PSBoundParameters.ContainsKey('ResponseCachePath')) { $ConfigTable.ResponseCachePath = $ResponseCachePath }
     $Script:Config = [PSCustomObject]$ConfigTable
     if ($PassThru) { $Script:Config }
     <#

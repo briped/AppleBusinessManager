@@ -32,41 +32,43 @@ function Get-Server {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. ServerId: '$ServerId'"
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('mdmServers'))"
+        if ($ServerId) {
+            $UriBuilder.Path += "/$([uri]::EscapeDataString($ServerId))"
+            $UriBuilder.Path += "/$([uri]::EscapeDataString('relationships'))"
+            $UriBuilder.Path += "/$([uri]::EscapeDataString('devices'))"
+        }
+        if ($Limit) { $QueryString.Set('limit', $Limit) }
+        if ($All) { $QueryString.Set('limit', 1000) }
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[mdmServers]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
+        $Uri = $UriBuilder.Uri
+        do {
 
-        # Build path segments based on whether ServerId is provided
-        $pathSegments = @('mdmServers')
-        if ($PSBoundParameters.ContainsKey('ServerId')) {
-            $pathSegments += $ServerId, 'relationships', 'devices'
-            $resourceType = 'orgDevices'
-        }
-        else {
-            $resourceType = 'mdmServers'
-        }
 
-        # Build query string
-        $ConvertQueryParams = @{
-            'ResourceType' = $resourceType
-            'All' = $All
-        }
-        if ($PSBoundParameters.ContainsKey('Limit')) {
-            $ConvertQueryParams['Limit'] = $Limit
-        }
-        if ($PSBoundParameters.ContainsKey('Fields')) {
-            $ConvertQueryParams['Fields'] = $Fields
-        }
-        $queryString = ConvertTo-ApiQueryString @ConvertQueryParams
-
-        # Build URI
-        $Uri = New-ApiUri -PathSegments $pathSegments -QueryString $queryString
-
-        # Handle pagination
-        try {
-            Invoke-PaginatedApiRequest -Uri $Uri -Raw:$Raw
-        }
-        catch {
-            Resolve-ApiError -ErrorRecord $_
-        }
+            try {
+                $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+                if (!$All) {
+                    if ($Raw) { return $Response }
+                    else { return $Response.data }
+                }
+            }
+            catch {
+                if (Test-Json -Json $_.ErrorDetails.Message) {
+                    $ErrorResponse = ($_.ErrorDetails.Message | ConvertFrom-Json -Depth 5).errors[0]
+                    switch ($ErrorResponse.status) {
+                        404 { return $null }
+                        Default { throw $ErrorResponse }
+                    }
+                }
+                throw $_
+            }
+            $Uri = $Response.links.next
+            if ($Raw) { $Response }
+            else { $Response.data }
+        } while ($Uri)
     }
     <#
     .SYNOPSIS

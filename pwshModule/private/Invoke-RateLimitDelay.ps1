@@ -5,13 +5,13 @@ function Invoke-RateLimitDelay {
         [uri]$Uri
     )
 
-    $rl = $Script:RateLimit[$Uri.Host]
-    if ($rl.DelayMs -gt 0 -and $rl.LastRequestAt) {
-        $elapsed   = ([datetime]::Now - [datetime]$rl.LastRequestAt).TotalMilliseconds
-        $remaining = $rl.DelayMs - $elapsed
-        if ($remaining -gt 0) {
-            Write-Debug "$($MyInvocation.MyCommand.Name): Rate limit delay ${remaining}ms (learned: $($rl.DelayMs)ms)"
-            Start-Sleep -Milliseconds $remaining
+    $RateLimitState = $Script:RateLimit[$Uri.Host]
+    if ($RateLimitState.DelayMilliseconds -gt 0 -and $RateLimitState.LastRequestAt) {
+        $Elapsed   = ([datetime]::Now - [datetime]$RateLimitState.LastRequestAt).TotalMilliseconds
+        $Remaining = $RateLimitState.DelayMilliseconds - $Elapsed
+        if ($Remaining -gt 0) {
+            Write-Debug "$($MyInvocation.MyCommand.Name): Rate limit delay ${Remaining} milliseconds (learned: $($RateLimitState.DelayMilliseconds) milliseconds)"
+            Start-Sleep -Milliseconds $Remaining
         }
     }
     <#

@@ -22,26 +22,27 @@ function Get-DeviceAssignedServerDetails {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): Retrieving assigned server details for DeviceId: $DeviceId"
-
-        # Build path segments
-        $pathSegments = @('orgDevices', $DeviceId, 'assignedServer')
-
-        # Build query string
-        $queryString = ConvertTo-ApiQueryString `
-            -ResourceType 'mdmServers' `
-            -Fields $Fields
-
-        # Build URI and make request
-        $Uri = New-ApiUri -PathSegments $pathSegments -QueryString $queryString
-
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDevices'))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('assignedServer'))"
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
         try {
-            $Response = Invoke-ApiRequest -Method Get -Uri $Uri
+            $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
             if ($Raw) { $Response }
             else { $Response.data }
         }
         catch {
-            Resolve-ApiError -ErrorRecord $_
+            if (Test-Json -Json $_.ErrorDetails.Message) {
+                $ErrorResponse = ($_.ErrorDetails.Message | ConvertFrom-Json -Depth 5).errors[0]
+                switch ($ErrorResponse.status) {
+                    404 { return $null }
+                    Default { throw $ErrorResponse }
+                }
+            }
+            throw $_
         }
     }
     <#

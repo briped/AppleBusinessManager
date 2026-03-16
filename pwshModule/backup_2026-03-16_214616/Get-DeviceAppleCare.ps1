@@ -33,34 +33,26 @@ function Get-DeviceAppleCare {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. Retrieving AppleCare coverage for DeviceId: $DeviceId"
-
-        # Build path segments
-        $pathSegments = @('orgDevices', $DeviceId, 'appleCareCoverage')
-
-        # Build query string
-        $ConvertQueryParams = @{
-            'ResourceType' = 'appleCareCoverage'
-            'All' = $All
-        }
-        if ($PSBoundParameters.ContainsKey('Limit')) {
-            $ConvertQueryParams['Limit'] = $Limit
-        }
-        if ($PSBoundParameters.ContainsKey('Fields')) {
-            $ConvertQueryParams['Fields'] = $Fields
-        }
-        $queryString = ConvertTo-ApiQueryString @ConvertQueryParams
-
-        # Build URI
-        $Uri = New-ApiUri -PathSegments $pathSegments -QueryString $queryString
-
-        # Handle pagination
-        try {
-            Invoke-PaginatedApiRequest -Uri $Uri -Raw:$Raw
-        }
-        catch {
-            Resolve-ApiError -ErrorRecord $_
-        }
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDevices'))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))"
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('appleCareCoverage'))"
+        if ($PSBoundParameters.ContainsKey('Limit')) { $QueryString.Set('limit', $Limit) }
+        if ($PSCmdlet.ParameterSetName -eq 'All') { $QueryString.Set('limit', 1000) }
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
+        $Uri = $UriBuilder.Uri
+        do {
+            $Response = Invoke-ApiRequest -Method Get -Uri $Uri
+            if ($PSCmdlet.ParameterSetName -eq 'Limit' -and !$All) {
+                if ($Raw) { return $Response }
+                else { return $Response.data }
+            }
+            $Uri = $Response.links.next
+            if ($Raw) { $Response }
+            else { $Response.data }
+        } while ($Uri)
     }
     <#
     .SYNOPSIS

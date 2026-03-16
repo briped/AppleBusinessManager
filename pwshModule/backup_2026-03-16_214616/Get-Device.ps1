@@ -37,65 +37,44 @@ function Get-Device {
         Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): Processing with ParameterSet '$($PSCmdlet.ParameterSetName)'"
-
-        # Build path segments based on parameter set
-        $pathSegments = @('orgDevices')
-        if ($PSBoundParameters.ContainsKey('DeviceId')) {
-            $pathSegments += $DeviceId
-        }
-
-        # Build query string
-        $ConvertQueryParams = @{
-            'ResourceType' = 'orgDevices'
-            'All' = $All
-        }
-        if ($PSBoundParameters.ContainsKey('Limit')) {
-            $ConvertQueryParams['Limit'] = $Limit
-        }
-        if ($PSBoundParameters.ContainsKey('Fields')) {
-            $ConvertQueryParams['Fields'] = $Fields
-        }
-        $queryString = ConvertTo-ApiQueryString @ConvertQueryParams
-
-        # Build URI
-        $Uri = New-ApiUri -PathSegments $pathSegments -QueryString $queryString
-
-        # Handle based on parameter set
-        if ($PSCmdlet.ParameterSetName -eq 'ID') {
-            # Single device request - no pagination
+        $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDevices'))"
+        if ($PSBoundParameters.ContainsKey('DeviceId')) { $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))" }
+        if ($PSBoundParameters.ContainsKey('Limit')) { $QueryString.Set('limit', $Limit) }
+        if ($PSCmdlet.ParameterSetName -eq 'All') { $QueryString.Set('limit', 1000) }
+        if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
+        $UriBuilder.Query = $QueryString.ToString()
+        $Uri = $UriBuilder.Uri
+        do {
             try {
-                $Response = Invoke-ApiRequest -Method Get -Uri $Uri
-                if ($Raw) { $Response }
-                else { $Response.data }
+                $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+                if ($PSCmdlet.ParameterSetName -eq 'NoID' -and !$All) {
+                    if ($Raw) { return $Response }
+                    else { return $Response.data }
+                }
             }
             catch {
-                Resolve-ApiError -ErrorRecord $_
-            }
-        }
-        else {
-            # List of devices with optional pagination
-            if ($All -or $PSBoundParameters.ContainsKey('Limit')) {
-                # Use pagination helper for list requests
-                try {
-                    Invoke-PaginatedApiRequest -Uri $Uri -Raw:$Raw
-                }
-                catch {
-                    Resolve-ApiError -ErrorRecord $_
-                }
-            }
-            else {
-                # Default single request without pagination
-                try {
-                    $Response = Invoke-ApiRequest -Method Get -Uri $Uri
-                    if ($Raw) { $Response }
-                    else { $Response.data }
-                }
-                catch {
-                    Resolve-ApiError -ErrorRecord $_
+                switch ($_.Exception.StatusCode.value__) {
+                    401 {
+                        #TODO: Re-authenticate using stored credentials and retry the request once authenticated before throwing an error.
+                        throw 'Unauthorized: Access token is missing or invalid. Please authenticate using Get-ApiToken.'
+                    }
+                    404 { return $null }
+                    429 {
+                        #$RetryAfter = $_.Exception.Response.Headers['Retry-After']
+                        #throw "Too Many Requests: Rate limit exceeded. Please retry after $RetryAfter seconds."
+                    }
+                    Default {
+                        $_
+                        return
+                    }
                 }
             }
-        }
+            $Uri = $Response.links.next
+            if ($Raw) { $Response }
+            else { $Response.data }
+        } while ($Uri)
     }
     <#
     .SYNOPSIS

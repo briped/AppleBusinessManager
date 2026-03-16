@@ -5,12 +5,12 @@ function Update-RateLimitOn429 {
         [uri]$Uri,
 
         [Parameter(Mandatory = $true)]
-        [int]$BackoffMs
+        [int]$BackoffMilliseconds
     )
 
-    $rl = $Script:RateLimit[$Uri.Host]
-    $rl.DelayMs        = if ($rl.DelayMs -eq 0) { $BackoffMs } else { $rl.DelayMs * 2 }
-    $rl.ConsecutiveOks = 0
+    $RateLimitState = $Script:RateLimit[$Uri.Host]
+    $RateLimitState.DelayMilliseconds = if ($RateLimitState.DelayMilliseconds -eq 0) { $BackoffMilliseconds } else { $RateLimitState.DelayMilliseconds * 2 }
+    $RateLimitState.ConsecutiveOks = 0
     Save-RateLimitState
     <#
     .SYNOPSIS
@@ -22,7 +22,7 @@ function Update-RateLimitOn429 {
     .PARAMETER Uri
         The URI of the API endpoint. The host portion is used to look up the delay state.
     .PARAMETER BackoffMs
-        The current backoff value from the retry loop, used to seed DelayMs if it is
+        The current backoff value from the retry loop, used to seed DelayMilliseconds if it is
         currently zero.
     .NOTES
         Reads and writes $Script:RateLimit. Always calls Save-RateLimitState.

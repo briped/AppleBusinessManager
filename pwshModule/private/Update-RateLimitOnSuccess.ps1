@@ -5,11 +5,11 @@ function Update-RateLimitOnSuccess {
         [uri]$Uri
     )
 
-    $rl = $Script:RateLimit[$Uri.Host]
-    $rl.ConsecutiveOks++
-    if ($rl.DelayMs -gt 0 -and $rl.ConsecutiveOks % 10 -eq 0) {
-        $rl.DelayMs = [math]::Max(0, [math]::Floor($rl.DelayMs * 0.75))
-        Write-Debug "$($MyInvocation.MyCommand.Name): Relaxing delay to $($rl.DelayMs)ms after $($rl.ConsecutiveOks) clean requests."
+    $RateLimitState = $Script:RateLimit[$Uri.Host]
+    $RateLimitState.ConsecutiveOks++
+    if ($RateLimitState.DelayMilliseconds -gt 0 -and $RateLimitState.ConsecutiveOks % 10 -eq 0) {
+        $RateLimitState.DelayMilliseconds = [math]::Max(0, [math]::Floor($RateLimitState.DelayMilliseconds * 0.75))
+        Write-Debug "$($MyInvocation.MyCommand.Name): Relaxing delay to $($RateLimitState.DelayMilliseconds) milliseconds after $($RateLimitState.ConsecutiveOks) clean requests."
         Save-RateLimitState
     }
     <#
