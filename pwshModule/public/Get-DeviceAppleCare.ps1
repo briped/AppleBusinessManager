@@ -29,7 +29,7 @@ function Get-DeviceAppleCare {
         $Raw
     )
     begin {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
         $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
@@ -44,7 +44,7 @@ function Get-DeviceAppleCare {
         $Uri = $UriBuilder.Uri
         do {
             $Response = Invoke-ApiRequest -Method Get -Uri $Uri
-            if ($PSCmdlet.ParameterSetName -eq 'Limit') {
+            if ($PSCmdlet.ParameterSetName -eq 'Limit' -and !$All) {
                 if ($Raw) { return $Response }
                 else { return $Response.data }
             }

@@ -45,10 +45,24 @@ function Get-Server {
         $UriBuilder.Query = $QueryString.ToString()
         $Uri = $UriBuilder.Uri
         do {
-            $Response = Invoke-ApiRequest -Method Get -Uri $Uri
-            if (!$All) {
-                if ($Raw) { return $Response }
-                else { return $Response.data }
+
+
+            try {
+                $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+                if (!$All) {
+                    if ($Raw) { return $Response }
+                    else { return $Response.data }
+                }
+            }
+            catch {
+                if (Test-Json -Json $_.ErrorDetails.Message) {
+                    $ErrorResponse = ($_.ErrorDetails.Message | ConvertFrom-Json -Depth 5).errors[0]
+                    switch ($ErrorResponse.status) {
+                        404 { return $null }
+                        Default { throw $ErrorResponse }
+                    }
+                }
+                throw $_
             }
             $Uri = $Response.links.next
             if ($Raw) { $Response }

@@ -1,10 +1,18 @@
-function Set-DeviceMDMServer {
+function Set-DeviceServer {
     [CmdletBinding()]
     param (
         [Parameter()]
         [ValidateSet('Assign', 'Unassign')]
         [string]
-        $Activity
+        $Action
+        ,
+        [Parameter(ParameterSetName = 'Assign')]
+        [switch]
+        $Assign
+        ,
+        [Parameter(ParameterSetName = 'Unassign')]
+        [switch]
+        $Unassign
         ,
         [Parameter(Mandatory = $true)]
         [string]
@@ -13,39 +21,56 @@ function Set-DeviceMDMServer {
         [Parameter(Mandatory = $true
                 ,  ValueFromPipeline = $true
                 ,  ValueFromPipelineByPropertyName = $true)]
+        [Alias('Id')]
         [string[]]
         $DeviceId
     )
     begin {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        $Activity = if ($Unassign) { 'UNASSIGN_DEVICES' } else { 'ASSIGN_DEVICES' }
+        $Data = @{
+            data = @{
+                type = 'orgDeviceActivities'
+                attributes = @{
+                    activityType = $Activity
+                }
+                relationships = @{
+                    mdmServer = @{
+                        data = @{
+                            type = 'mdmServers'
+                            id = $ServerId
+                        }
+                    }
+                    devices = @{}
+                }
+            }
+        }
     }
     process {
-        throw "$($MyInvocation.MyCommand.Name): Function not implemented yet."
-        $Data = @{
-            type = 'orgDeviceActivities'
-            attributes = @{
-                activityType = 'ASSIGN_DEVICES'
+        $UriBuilder = [System.UriBuilder]::new($Script:Config.ApiUrl)
+        $UriBuilder.Path += "/$([uri]::EscapeDataString('orgDeviceActivities'))"
+
+        $Data.Relationships.devices.data = @()
+        foreach ($Id in $DeviceId) {
+            $Data.data.relationships.devices.data += @{
+                type = 'orgDevices'
+                id = $Id
             }
-            Relationships = @{
-                mdmServer = @{
-                    data = @{
-                        type = 'mdmServers'
-                        id = '1F97349736CF4614A94F624E705841AD'
-                    }
-                }
-                devices = @{
-                    data = @(
-                        @{
-                            type = 'orgDevices'
-                            id = 'serialNumber'
-                        },
-                        @{
-                            type = 'orgDevices'
-                            id = 'serialNumber'
-                        }
-                    )
-                }
-            }
+        }
+        $Payload = $Data | ConvertTo-Json -Compress -Depth 5
+        $Request = @{
+            Uri    = $UriBuilder.Uri
+            Method = 'POST'
+            Body   = $Payload
+        }
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): Invoke-ApiRequest $($Request | ConvertTo-Json -Compress -Depth 10 -WarningAction SilentlyContinue)"
+        try {
+            $Response = Invoke-ApiRequest -Method Post -Uri $UriBuilder.Uri -Body $Payload
+            if ($Raw) { $Response }
+            else { $Response.data }
+        }
+        catch {
+            throw $_
         }
     }
     <#

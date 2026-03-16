@@ -1,7 +1,9 @@
 function Get-DeviceAssignedServerDetails {
     [CmdletBinding(DefaultParameterSetName = 'Limit')]
     param (
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true
+                ,  ValueFromPipeline = $true
+                ,  ValueFromPipelineByPropertyName = $true)]
         [Alias('Id')]
         [string]
         $DeviceId
@@ -16,7 +18,7 @@ function Get-DeviceAssignedServerDetails {
         $Raw
     )
     begin {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
         $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
@@ -26,9 +28,21 @@ function Get-DeviceAssignedServerDetails {
         $UriBuilder.Path += "/$([uri]::EscapeDataString('assignedServer'))"
         if ($PSBoundParameters.ContainsKey('Fields')) { $QueryString.Set('fields[orgDevices]', $Fields -join ',') }
         $UriBuilder.Query = $QueryString.ToString()
-        $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
-        if ($Raw) { $Response }
-        else { $Response.data }
+        try {
+            $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+            if ($Raw) { $Response }
+            else { $Response.data }
+        }
+        catch {
+            if (Test-Json -Json $_.ErrorDetails.Message) {
+                $ErrorResponse = ($_.ErrorDetails.Message | ConvertFrom-Json -Depth 5).errors[0]
+                switch ($ErrorResponse.status) {
+                    404 { return $null }
+                    Default { throw $ErrorResponse }
+                }
+            }
+            throw $_
+        }
     }
     <#
 https://developer.apple.com/documentation/applebusinessmanagerapi/get-the-assigned-device-management-service-information-for-an-orgdevice

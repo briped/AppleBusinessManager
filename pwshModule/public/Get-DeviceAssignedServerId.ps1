@@ -21,9 +21,21 @@ function Get-DeviceAssignedServerId {
         $UriBuilder.Path += "/$([uri]::EscapeDataString($DeviceId))"
         $UriBuilder.Path += "/$([uri]::EscapeDataString('relationships'))"
         $UriBuilder.Path += "/$([uri]::EscapeDataString('assignedServer'))"
-        $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
-        if ($Raw) { $Response }
-        else { $Response.data }
+        try {
+            $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+            if ($Raw) { $Response }
+            else { $Response.data }
+        }
+        catch {
+            if (Test-Json -Json $_.ErrorDetails.Message) {
+                $ErrorResponse = ($_.ErrorDetails.Message | ConvertFrom-Json -Depth 5).errors[0]
+                switch ($ErrorResponse.status) {
+                    404 { return $null }
+                    Default { throw $ErrorResponse }
+                }
+            }
+            throw $_
+        }
     }
     <#
     WHAT IS THE POINT OF THIS!?

@@ -33,7 +33,7 @@ function Get-Device {
         $Raw
     )
     begin {
-        Write-Debug -Message "$($MyInvocation.MyCommand.Name): $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
+        Write-Debug -Message "$($MyInvocation.MyCommand.Name): ParameterSet: '$($PSCmdlet.ParameterSetName)'. $($PSCmdlet.MyInvocation.BoundParameters | ConvertTo-Json -Compress -WarningAction SilentlyContinue)"
     }
     process {
         $QueryString = [System.Web.HttpUtility]::ParseQueryString($null)
@@ -46,10 +46,23 @@ function Get-Device {
         $UriBuilder.Query = $QueryString.ToString()
         $Uri = $UriBuilder.Uri
         do {
-            $Response = Invoke-ApiRequest -Method Get -Uri $Uri
-            if ($NoID) {
-                if ($Raw) { return $Response }
-                else { return $Response.data }
+
+            try {
+                $Response = Invoke-ApiRequest -Method Get -Uri $UriBuilder.Uri
+                if ($PSCmdlet.ParameterSetName -eq 'NoID' -and !$All) {
+                    if ($Raw) { return $Response }
+                    else { return $Response.data }
+                }
+            }
+            catch {
+                if (Test-Json -Json $_.ErrorDetails.Message) {
+                    $ErrorResponse = ($_.ErrorDetails.Message | ConvertFrom-Json -Depth 5).errors[0]
+                    switch ($ErrorResponse.status) {
+                        404 { return $null }
+                        Default { throw $ErrorResponse }
+                    }
+                }
+                throw $_
             }
             $Uri = $Response.links.next
             if ($Raw) { $Response }
